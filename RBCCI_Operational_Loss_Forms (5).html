@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RBCCI – Operational Loss Events System</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Serif:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://apis.google.com/js/api.js"></script>
+<style>
+:root{
+  --bg:#f5f3ee;--surface:#fff;--surface2:#faf9f6;--border:#d6d0c4;--border2:#b8b0a0;
+  --ink:#1a1714;--ink2:#4a4540;--ink3:#7a7268;
+  --accent:#8b1a1a;--accent2:#c0392b;--gold:#c8922a;
+  --green:#1a5c2a;--green-bg:#eaf4ec;
+  --amber:#92600a;--amber-bg:#fef3e2;
+  --red-bg:#fde8e8;--blue:#1a3a6b;--blue-bg:#e8eef8;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--serif:'IBM Plex Serif',serif;
+  --shadow:0 2px 8px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh}
+
+/* HEADER */
+.site-header{background:var(--accent);color:#fff;padding:0 32px;display:flex;align-items:stretch;border-bottom:3px solid var(--gold);position:sticky;top:0;z-index:100;box-shadow:var(--shadow-lg)}
+.header-logo{display:flex;flex-direction:column;justify-content:center;padding:14px 28px 14px 0;border-right:1px solid rgba(255,255,255,.2);margin-right:28px}
+.header-logo .bank-name{font-family:var(--serif);font-size:17px;font-weight:600;line-height:1.2}
+.header-logo .bank-sub{font-family:var(--mono);font-size:9px;opacity:.7;letter-spacing:.12em;margin-top:3px;text-transform:uppercase}
+.header-title{display:flex;flex-direction:column;justify-content:center}
+.header-title h1{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.9}
+.header-title .ref{font-family:var(--mono);font-size:10px;opacity:.55;margin-top:2px}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.period-badge{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:5px 12px;font-family:var(--mono);font-size:10px;letter-spacing:.08em}
+.gs-dot-header{width:9px;height:9px;border-radius:50%;background:#555;transition:background .3s}
+.gs-dot-header.on{background:#2ecc71}
+
+/* TABS */
+.tab-nav{background:var(--surface);border-bottom:2px solid var(--border);display:flex;padding:0 32px;gap:0;overflow-x:auto}
+.tab-btn{font-family:var(--sans);font-size:12px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);background:none;border:none;border-bottom:3px solid transparent;padding:14px 20px 11px;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s;display:flex;align-items:center;gap:7px;margin-bottom:-2px}
+.tab-btn:hover{color:var(--accent)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.tab-icon{font-size:14px;opacity:.6}
+.tab-btn.active .tab-icon{opacity:1}
+
+/* LAYOUT */
+.main-content{max-width:1100px;margin:0 auto;padding:32px 24px 64px}
+.tab-panel{display:none}
+.tab-panel.active{display:block;animation:fadeUp .2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* PAGE TITLE */
+.page-title{margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.page-title h2{font-family:var(--serif);font-size:26px;font-weight:600}
+.page-title .sub{font-size:13px;color:var(--ink3);margin-top:4px;font-family:var(--mono)}
+
+/* FORM SECTIONS */
+.form-section{background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:20px;overflow:hidden;box-shadow:var(--shadow)}
+.form-section-header{color:#fff;padding:10px 20px;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.fsh-red{background:var(--accent)}
+.fsh-blue{background:var(--blue)}
+.fsh-gold{background:#6b4c10}
+.fsh-gray{background:#4a4540}
+.fsh-green{background:var(--green)}
+.fsh-ink{background:var(--ink)}
+.section-num{background:rgba(255,255,255,.2);border-radius:3px;padding:2px 7px;font-size:10px}
+.form-body{padding:20px 24px}
+
+/* GRID */
+.form-grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:1fr 1fr}
+.grid-3{grid-template-columns:1fr 1fr 1fr}
+.col-2{grid-column:span 2}
+.col-3{grid-column:span 3}
+
+/* FIELDS */
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.field label .req{color:var(--accent2);margin-left:2px}
+.field input,.field select,.field textarea{font-family:var(--sans);font-size:14px;color:var(--ink);background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;padding:9px 12px;transition:border-color .15s,box-shadow .15s;outline:none;width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,26,26,.1);background:#fff}
+.field textarea{resize:vertical;min-height:90px;line-height:1.55}
+.field select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a4540' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+.field input[readonly]{background:#f0ede8;color:var(--ink3);cursor:default;font-family:var(--mono);font-size:13px}
+.field .hint{font-size:11px;color:var(--ink3);font-style:italic}
+.currency-wrap{position:relative}
+.currency-wrap .prefix{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:13px;color:var(--ink3);pointer-events:none}
+.currency-wrap input{padding-left:46px;font-family:var(--mono)}
+.radio-group,.check-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+.radio-item{display:flex;align-items:center;gap:7px;background:var(--surface2);border:1.5px solid var(--border);border-radius:4px;padding:8px 14px;cursor:pointer;font-size:13px;transition:all .12s}
+.radio-item input{display:none}
+.radio-item:has(input:checked){background:var(--red-bg);border-color:var(--accent);color:var(--accent);font-weight:600}
+
+/* BUTTONS */
+.btn-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.btn{font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:10px 22px;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:all .15s;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:#6b1212}
+.btn-secondary{background:#fff;color:var(--ink);border-color:var(--border2)}
+.btn-secondary:hover{border-color:var(--ink2)}
+.btn-ghost{background:none;color:var(--ink3);border-color:transparent}
+.btn-ghost:hover{color:var(--ink)}
+.btn-success{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-sm{padding:6px 14px;font-size:11px}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:5px;border-radius:4px;padding:3px 10px;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-red{background:var(--red-bg);color:var(--accent2)}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-gray{background:#eee;color:#555}
+
+/* TABLE */
+.data-table-wrap{overflow-x:auto;border-radius:4px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--ink);color:#fff;padding:10px 14px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;text-align:left;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border)}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#faf7f2}
+tbody td{padding:10px 14px;vertical-align:top}
+tbody td.mono{font-family:var(--mono);font-size:12px}
+
+/* KRI */
+.kri-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.kri-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 20px;position:relative;box-shadow:var(--shadow)}
+.kri-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
+.kri-value{font-family:var(--mono);font-size:28px;font-weight:600;color:var(--ink)}
+.kri-sub{font-size:11px;color:var(--ink3);margin-top:4px}
+.kri-threshold{font-size:11px;color:var(--ink3);margin-top:8px;font-family:var(--mono)}
+.rag-dot{position:absolute;top:16px;right:16px;width:10px;height:10px;border-radius:50%}
+.rag-green{background:#2ecc71}.rag-amber{background:#f39c12}.rag-red{background:var(--accent2)}.rag-gray{background:#bbb}
+
+/* CATEGORY MAP */
+.cat-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)}
+.cat-card-body{padding:14px 18px;font-size:13px;line-height:1.6;color:var(--ink2)}
+.cat-card-body .examples{margin-top:8px;font-size:12px;color:var(--ink3);font-style:italic}
+.cat-card-body .trigger{margin-top:8px;padding:8px 12px;background:var(--amber-bg);border-left:3px solid var(--gold);font-size:11px;color:var(--amber);border-radius:0 3px 3px 0}
+
+/* SUMMARY STATS */
+.summary-stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px 24px;box-shadow:var(--shadow)}
+.summary-stat .stat-label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.summary-stat .stat-value{font-family:var(--mono);font-size:32px;font-weight:600;color:var(--ink)}
+.summary-stat .stat-note{font-size:12px;color:var(--ink3);margin-top:4px}
+
+/* DOCUMENT VAULT */
+.vault-drop-zone{border:2.5px dashed var(--border2);border-radius:8px;background:var(--surface2);padding:48px 32px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.vault-drop-zone:hover,.vault-drop-zone.drag-over{border-color:var(--accent);background:var(--red-bg)}
+.vault-drop-zone .drop-icon{font-size:40px;margin-bottom:12px;opacity:.5;display:block;transition:transform .2s,opacity .2s}
+.vault-drop-zone:hover .drop-icon{opacity:.85;transform:translateY(-3px)}
+.vault-drop-zone .drop-title{font-family:var(--serif);font-size:18px;font-weight:600;color:var(--ink2);margin-bottom:6px}
+.vault-drop-zone .drop-sub{font-size:12px;color:var(--ink3);font-family:var(--mono);letter-spacing:.04em}
+.vault-drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.vault-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:var(--shadow)}
+.vault-filters label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.vault-filters select,.vault-filters input[type=text]{font-family:var(--mono);font-size:12px;padding:6px 10px;border:1.5px solid var(--border);border-radius:4px;background:#fff;color:var(--ink);outline:none}
+.vault-filters input[type=text]{flex:1;min-width:180px}
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.doc-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow);transition:box-shadow .15s,transform .15s;cursor:pointer}
+.doc-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.doc-preview{height:160px;background:#f0ede8;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.doc-preview img{width:100%;height:100%;object-fit:cover}
+.doc-type-icon{font-size:52px;opacity:.35}
+.doc-page-count{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:3px}
+.doc-info{padding:12px 14px;border-top:1px solid var(--border)}
+.doc-ref{font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:600;letter-spacing:.06em;margin-bottom:4px}
+.doc-name{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-meta{font-size:11px;color:var(--ink3);display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.doc-actions{display:flex;gap:6px;margin-top:10px}
+.doc-tag{display:inline-flex;align-items:center;background:var(--blue-bg);color:var(--blue);font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:3px;margin-right:4px;margin-bottom:4px}
+.doc-tag.tag-pdf{background:var(--red-bg);color:var(--accent)}
+.doc-tag.tag-img{background:var(--green-bg);color:var(--green)}
+.vault-stats-bar{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
+.vault-stat{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:8px 14px;box-shadow:var(--shadow)}
+.vault-stat .vs-num{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--ink)}
+.vault-stat .vs-label{font-size:11px;color:var(--ink3)}
+.vault-empty{text-align:center;padding:64px 32px;color:var(--ink3)}
+.vault-empty .ve-icon{font-size:48px;margin-bottom:16px;opacity:.3}
+.vault-empty .ve-title{font-family:var(--serif);font-size:20px;color:var(--ink2);margin-bottom:6px}
+
+/* LIGHTBOX */
+.lightbox-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px}
+.lightbox-box{background:var(--surface);border-radius:8px;max-width:780px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.4)}
+.lightbox-header{background:var(--ink);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-radius:8px 8px 0 0}
+.lightbox-header .lh-title{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.08em}
+.lightbox-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:.7;line-height:1}
+.lightbox-close:hover{opacity:1}
+.lightbox-img{width:100%;border-radius:0 0 8px 8px;display:block}
+.lightbox-pdf{width:100%;height:560px;border:none;border-radius:0 0 8px 8px}
+.lightbox-body{padding:20px 24px}
+.lightbox-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.lm-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px}
+.lm-value{font-size:13px;color:var(--ink);font-family:var(--mono)}
+
+/* GOOGLE SYNC TAB */
+.gsync-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:20px;overflow:hidden;box-shadow:var(--shadow)}
+.gsync-card-header{background:var(--ink);color:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.gsync-card-title{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.gsync-card-body{padding:20px 24px}
+.gsync-status-bar{display:flex;align-items:center;gap:12px;padding:12px 18px;border-radius:6px;background:#f0ede8;border:1px solid var(--border);margin-bottom:20px;font-size:13px;font-weight:500}
+.gsync-status-bar.connected{background:var(--green-bg);border-color:#a8d5b0;color:var(--green)}
+.gsync-status-bar.error{background:var(--red-bg);border-color:#f5b0b0;color:var(--accent2)}
+.status-dot{width:10px;height:10px;border-radius:50%;background:#bbb;flex-shrink:0}
+.status-dot.green{background:#2ecc71}
+.status-dot.red{background:var(--accent2)}
+.status-dot.orange{background:#f39c12}
+.status-dot.spinning{background:#3498db;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sheet-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.sheet-row:last-child{border-bottom:none}
+.sheet-row-icon{font-size:18px;width:28px;text-align:center}
+.sheet-row-info{flex:1}
+.sheet-row-name{font-weight:600;font-size:13px}
+.sheet-row-sub{font-size:11px;color:var(--ink3);margin-top:2px}
+.sheet-row-status{font-family:var(--mono);font-size:11px;color:var(--ink3);min-width:80px;text-align:right}
+.sheet-sync-btn{font-family:var(--mono);font-size:11px;font-weight:600;padding:5px 14px;border-radius:4px;border:1.5px solid var(--border2);background:#fff;cursor:pointer;letter-spacing:.06em;transition:all .15s}
+.sheet-sync-btn:hover{border-color:var(--accent);color:var(--accent)}
+.sheet-sync-btn.syncing{border-color:var(--amber);color:var(--amber)}
+.sheet-sync-btn.synced{border-color:var(--green);color:var(--green)}
+.sync-log-wrap{background:#1a1714;color:#a8c5a0;font-family:var(--mono);font-size:11px;border-radius:4px;padding:12px;min-height:80px;max-height:200px;overflow-y:auto;line-height:1.7;white-space:pre-wrap}
+.log-ok{color:#2ecc71}.log-err{color:#e74c3c}.log-info{color:#3498db}.log-dim{color:#555}
+
+/* UPLOAD PROGRESS */
+.upload-progress{position:fixed;bottom:80px;right:28px;z-index:300;background:var(--ink);color:#fff;border-radius:6px;padding:14px 18px;min-width:260px;box-shadow:var(--shadow-lg)}
+.progress-bar-wrap{background:rgba(255,255,255,.15);border-radius:3px;height:4px;overflow:hidden;margin-top:8px}
+.progress-bar-fill{height:100%;background:var(--gold);border-radius:3px;transition:width .3s}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:28px;right:28px;z-index:999;display:flex;flex-direction:column;gap:10px}
+.toast{background:var(--ink);color:#fff;padding:12px 20px;border-radius:6px;font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:10px;max-width:340px;animation:slideIn .25s ease}
+.toast.success{background:var(--green)}.toast.error{background:var(--accent)}
+@keyframes slideIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
+
+/* RESPONSIVE */
+@media(max-width:700px){
+  .grid-2,.grid-3{grid-template-columns:1fr}
+  .col-2,.col-3{grid-column:span 1}
+  .main-content{padding:20px 14px 48px}
+  .site-header{padding:0 16px}
+  .tab-nav{padding:0 8px}
+  .tab-btn{padding:12px 10px 9px;font-size:11px}
+  .kri-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════ HEADER ═══════ -->
+<header class="site-header">
+  <div class="header-logo">
+    <div class="bank-name">Rural Bank of<br>Calbayog City, Inc.</div>
+    <div class="bank-sub">RBCCI · Operational Risk</div>
+  </div>
+  <div class="header-title">
+    <h1>Operational Loss Events Database</h1>
+    <div class="ref">BSP Circular 900 / MORB Part Three, Chapter 5 / Basel II–III Framework</div>
+  </div>
+  <div class="header-right">
+    <div class="period-badge">Q1 2026 · JAN – MAR</div>
+    <div class="gs-dot-header" id="hdrDot" title="Google Sync status"></div>
+  </div>
+</header>
+
+<!-- ═══════ TABS ═══════ -->
+<nav class="tab-nav">
+  <button class="tab-btn active" id="tab-incident" onclick="switchTab('incident')"><span class="tab-icon">📋</span>Incident Report</button>
+  <button class="tab-btn" id="tab-log"      onclick="switchTab('log')"><span class="tab-icon">📒</span>Loss Event Log</button>
+  <button class="tab-btn" id="tab-quarterly" onclick="switchTab('quarterly')"><span class="tab-icon">📊</span>Quarterly Summary</button>
+  <button class="tab-btn" id="tab-kri"      onclick="switchTab('kri')"><span class="tab-icon">🚦</span>KRI Dashboard</button>
+  <button class="tab-btn" id="tab-mapping"  onclick="switchTab('mapping')"><span class="tab-icon">🗺️</span>Category Mapping</button>
+  <button class="tab-btn" id="tab-vault"    onclick="switchTab('vault')"><span class="tab-icon">🗄️</span>Document Vault</button>
+  <button class="tab-btn" id="tab-gsync" onclick="switchTab('gsync')" style="margin-left:auto;"><span class="tab-icon">☁</span>Google Sync</button>
+</nav>
+
+<main class="main-content">
+
+<!-- ═══════════════════════════════════════════ TAB 1: INCIDENT REPORT ═══════ -->
+<div class="tab-panel active" id="panel-incident">
+  <div class="page-title">
+    <div>
+      <h2>Incident Report Form</h2>
+      <div class="sub">Complete within 3 business days · Required fields marked <span style="color:var(--accent2)">*</span></div>
+    </div>
+    <div class="btn-row"><button class="btn btn-secondary btn-sm" onclick="resetIncidentForm()">↺ Reset</button></div>
+  </div>
+  <form id="incidentForm" onsubmit="submitIncidentForm(event)">
+
+    <div class="form-section">
+      <div class="form-section-header fsh-red"><span class="section-num">A</span> Event Identification</div>
+      <div class="form-body">
+        <div class="form-grid grid-3">
+          <div class="field"><label>Event Reference No.</label><input type="text" id="evtRef" readonly></div>
+          <div class="field"><label>Date of Report <span class="req">*</span></label><input type="date" id="dateReport" required></div>
+          <div class="field"><label>Date of Occurrence <span class="req">*</span></label><input type="date" id="dateOccurrence" required></div>
+          <div class="field"><label>Date Discovered <span class="req">*</span></label><input type="date" id="dateDiscovered" required></div>
+          <div class="field"><label>Reporting Employee <span class="req">*</span></label><input type="text" id="reportingEmployee" placeholder="Full name" required></div>
+          <div class="field"><label>Department / Branch <span class="req">*</span></label>
+            <select id="department" required>
+              <option value="">— Select —</option>
+              <option>Main Branch</option><option>Branch 2</option><option>Branch 3</option>
+              <option>Head Office</option><option>All Branches</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-header fsh-blue"><span class="section-num">B</span> Event Classification</div>
+      <div class="form-body">
+        <div class="form-grid grid-2">
+          <div class="field"><label>RBCCI Category <span class="req">*</span></label>
+            <select id="category" required onchange="syncBaselType()">
+              <option value="">— Select —</option>
+              <option>Teller/Transaction Error</option><option>Internal Fraud</option>
+              <option>External Fraud</option><option>IT/Systems Disruption</option>
+              <option>Regulatory Penalty</option><option>Natural Disaster / Physical</option>
+              <option>Employment & HR</option><option>Agri-Lending Loss</option>
+            </select>
+          </div>
+          <div class="field"><label>Basel II Event Type</label><input type="text" id="baselType" readonly placeholder="Auto-filled"></div>
+          <div class="field"><label>Root Cause Category <span class="req">*</span></label>
+            <select id="rootCauseCat" required>
+              <option value="">— Select —</option>
+              <option>People</option><option>Process</option><option>Systems</option><option>External</option>
+            </select>
+          </div>
+          <div class="field"><label>Estimated Gross Loss (PHP) <span class="req">*</span></label>
+            <div class="currency-wrap"><span class="prefix">₱</span><input type="number" id="grossLoss" min="0" step="0.01" placeholder="0.00" required></div>
+          </div>
+          <div class="field"><label>Recovery (PHP)</label>
+            <div class="currency-wrap"><span class="prefix">₱</span><input type="number" id="recovery" min="0" step="0.01" placeholder="0.00"></div>
+          </div>
+          <div class="field"><label>Net Loss (PHP)</label>
+            <div class="currency-wrap"><span class="prefix">₱</span><input type="number" id="netLoss" readonly placeholder="Auto-calculated"></div>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <div class="field"><label>Event Type</label>
+            <div class="radio-group">
+              <label class="radio-item"><input type="radio" name="eventType" value="Actual Loss" checked> Actual Loss</label>
+              <label class="radio-item"><input type="radio" name="eventType" value="Near-Miss"> Near-Miss</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-header fsh-gold"><span class="section-num">C</span> Event Description</div>
+      <div class="form-body">
+        <div class="form-grid">
+          <div class="field"><label>Description of Event <span class="req">*</span></label><textarea id="eventDesc" rows="4" placeholder="Clear, factual description of what occurred..." required></textarea></div>
+          <div class="field"><label>Business Impact</label><textarea id="businessImpact" rows="2" placeholder="Impact on operations, customers, regulatory standing..."></textarea></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-header fsh-gray"><span class="section-num">D</span> Root Cause Analysis</div>
+      <div class="form-body">
+        <div class="form-grid">
+          <div class="field"><label>Root Cause Description <span class="req">*</span></label><textarea id="rootCauseDesc" rows="3" placeholder="Underlying root cause(s), contributing factors, control gaps..." required></textarea></div>
+          <div class="field"><label>Control Gap / Weakness Identified</label><textarea id="controlGap" rows="2" placeholder="Specific control weaknesses that allowed this event..."></textarea></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-header fsh-green"><span class="section-num">E</span> Corrective Action</div>
+      <div class="form-body">
+        <div class="form-grid">
+          <div class="field"><label>Corrective Actions Taken / Planned <span class="req">*</span></label><textarea id="correctiveAction" rows="3" placeholder="Actions taken and planned preventive measures..." required></textarea></div>
+          <div class="form-grid grid-2">
+            <div class="field"><label>Current Status <span class="req">*</span></label>
+              <select id="status" required>
+                <option value="">— Select —</option>
+                <option>Open</option><option>Under Investigation</option><option>Resolved</option><option>Closed</option>
+              </select>
+            </div>
+            <div class="field"><label>Date Resolved</label><input type="date" id="dateResolved"></div>
+            <div class="field"><label>Supporting Document Ref.</label><input type="text" id="docRef" placeholder="e.g. IR-2026-001; STR-2026-015"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-header fsh-ink"><span class="section-num">F</span> Approvals</div>
+      <div class="form-body">
+        <div class="form-grid grid-3">
+          <div class="field"><label>Reported By <span class="req">*</span></label><input type="text" id="reportedBy" placeholder="Full name & designation" required></div>
+          <div class="field"><label>Reviewed By</label><input type="text" id="reviewedBy" placeholder="Full name & designation"></div>
+          <div class="field"><label>Approved By <span class="req">*</span></label><input type="text" id="approvedBy" placeholder="Full name & designation" required></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button type="submit" class="btn btn-primary" id="submitBtn">✓ Submit Incident Report</button>
+      <button type="button" class="btn btn-secondary" onclick="window.print()">⎙ Print</button>
+      <button type="button" class="btn btn-ghost" onclick="resetIncidentForm()">↺ Clear All</button>
+    </div>
+  </form>
+</div>
+
+<!-- ═══════════════════════════════════════════ TAB 2: LOSS EVENT LOG ═══════ -->
+<div class="tab-panel" id="panel-log">
+  <div class="page-title">
+    <div><h2>Loss Event Log Register</h2><div class="sub">All recorded operational loss events · Q1 2026</div></div>
+    <div class="btn-row">
+      <select id="logFilterStatus" onchange="renderLog()" style="font-family:var(--mono);font-size:12px;padding:7px 12px;border:1.5px solid var(--border);border-radius:4px;background:#fff;cursor:pointer">
+        <option value="">All Statuses</option><option>Open</option><option>Under Investigation</option><option>Resolved</option><option>Closed</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="switchTab('incident')">+ New Entry</button>
+    </div>
+  </div>
+  <div class="data-table-wrap"><table id="logTable">
+    <thead><tr>
+      <th>Event No.</th><th>Date Discovered</th><th>Date of Occurrence</th><th>Category</th>
+      <th>Basel II Event Type</th><th>Description</th><th style="text-align:right">Gross Loss (₱)</th>
+      <th style="text-align:right">Recovery (₱)</th><th style="text-align:right">Net Loss (₱)</th>
+      <th>Branch / Unit</th><th>Root Cause</th><th>Status</th><th>Approved By</th><th>Doc Ref</th>
+    </tr></thead>
+    <tbody id="logBody"></tbody>
+  </table></div>
+  <div id="logEmpty" style="display:none;text-align:center;padding:48px;color:var(--ink3)"><div style="font-size:32px;margin-bottom:12px">📭</div><div style="font-size:14px;font-weight:600">No events match the current filter</div></div>
+  <div style="margin-top:12px;font-family:var(--mono);font-size:12px;color:var(--ink3)" id="logCount"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════ TAB 3: QUARTERLY SUMMARY ═══════ -->
+<div class="tab-panel" id="panel-quarterly">
+  <div class="page-title"><div><h2>Quarterly Summary Analysis</h2><div class="sub">Reporting Period: Q1 2026 (January – March 2026)</div></div></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px" id="qStats"></div>
+  <div class="form-section">
+    <div class="form-section-header fsh-blue"><span class="section-num">1</span> Loss Events by Category</div>
+    <div class="form-body" style="padding:0"><div class="data-table-wrap" style="border:none;border-radius:0"><table>
+      <thead><tr>
+        <th>RBCCI Category</th><th>Basel II Event Type</th>
+        <th style="text-align:right">Events</th><th style="text-align:right">Gross Loss (₱)</th>
+        <th style="text-align:right">Recovery (₱)</th><th style="text-align:right">Net Loss (₱)</th>
+        <th style="text-align:right">% of Total</th><th style="text-align:right">Avg Loss (₱)</th>
+      </tr></thead>
+      <tbody id="qCatBody"></tbody>
+    </table></div></div>
+  </div>
+  <div class="form-section">
+    <div class="form-section-header fsh-gray"><span class="section-num">2</span> Event Status Summary</div>
+    <div class="form-body" style="padding:0"><div class="data-table-wrap" style="border:none;border-radius:0"><table>
+      <thead><tr>
+        <th>Status</th><th style="text-align:right">Count</th>
+        <th style="text-align:right">% of Total</th><th style="text-align:right">Total Gross Loss (₱)</th>
+      </tr></thead>
+      <tbody id="qStatusBody"></tbody>
+    </table></div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ TAB 4: KRI DASHBOARD ═══════ -->
+<div class="tab-panel" id="panel-kri">
+  <div class="page-title"><div><h2>KRI Dashboard — Operational Risk</h2><div class="sub">As of Q1 2026 · Rural Bank of Calbayog City, Inc.</div></div></div>
+  <div class="kri-grid" id="kriGrid"></div>
+  <div style="margin-top:20px;padding:14px 18px;background:var(--amber-bg);border:1px solid #e8c07a;border-radius:6px;font-size:12px;color:var(--amber)">
+    ⚠ KRIs marked N/A require manual data inputs (gross income, IT uptime, near-miss counts).
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ TAB 5: CATEGORY MAPPING ═══════ -->
+<div class="tab-panel" id="panel-mapping">
+  <div class="page-title"><div><h2>Operational Risk Category Mapping</h2><div class="sub">Basel II Event Types mapped to RBCCI Simplified Categories</div></div></div>
+  <div id="catMapGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════ TAB 6: DOCUMENT VAULT ═══════ -->
+<div class="tab-panel" id="panel-vault">
+  <div class="page-title">
+    <div><h2>Document Vault</h2><div class="sub">Scanned incident reports & supporting documents · Linked to Loss Event Log</div></div>
+    <div class="btn-row"><button class="btn btn-primary btn-sm" onclick="document.getElementById('vaultFileInput').click()">⬆ Upload Document</button></div>
+  </div>
+
+  <div class="vault-drop-zone" id="vaultDropZone" style="margin-bottom:24px">
+    <input type="file" id="vaultFileInput" multiple accept="image/*,.pdf" onchange="handleVaultFiles(this.files)">
+    <span class="drop-icon">🗄️</span>
+    <div class="drop-title">Drop scanned documents here</div>
+    <div class="drop-sub">PNG · JPG · PDF &nbsp;·&nbsp; Max 20 MB per file</div>
+    <div style="margin-top:16px"><span class="btn btn-secondary btn-sm" style="pointer-events:none">Choose Files</span></div>
+  </div>
+
+  <div id="uploadMetaModal" style="display:none;margin-bottom:24px">
+    <div class="form-section">
+      <div class="form-section-header fsh-red"><span class="section-num">↑</span> Tag Uploaded Document</div>
+      <div class="form-body">
+        <div id="uploadPreviewRow" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px"></div>
+        <div class="form-grid grid-3">
+          <div class="field"><label>Linked Event Reference <span class="req">*</span></label><select id="vaultLinkRef"><option value="">-- Select Event --</option></select></div>
+          <div class="field"><label>Document Type <span class="req">*</span></label>
+            <select id="vaultDocType">
+              <option value="">-- Select --</option>
+              <option>Incident Report Form (Printed)</option><option>BSP Letter / Notice</option>
+              <option>Insurance Claim</option><option>STR Filing</option>
+              <option>Police / Incident Report</option><option>Internal Memo</option>
+              <option>Supporting Evidence</option><option>Corrective Action Plan</option>
+              <option>Approval / Sign-off Sheet</option><option>Other</option>
+            </select>
+          </div>
+          <div class="field"><label>Document Reference No.</label><input type="text" id="vaultDocRef" placeholder="e.g. IR-2026-001"></div>
+          <div class="field col-2"><label>Notes / Remarks</label><input type="text" id="vaultDocNotes" placeholder="Optional description..."></div>
+          <div class="field"><label>Uploaded By <span class="req">*</span></label><input type="text" id="vaultUploadedBy" placeholder="Full name"></div>
+        </div>
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn btn-primary" onclick="confirmVaultUpload()">✓ Save to Vault</button>
+          <button class="btn btn-ghost" onclick="cancelVaultUpload()">✕ Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="vault-stats-bar" id="vaultStatsBar"></div>
+  <div class="vault-filters" id="vaultFilters" style="display:none">
+    <label>Filter:</label>
+    <select id="vaultFilterType" onchange="renderVault()">
+      <option value="">All Types</option>
+      <option>Incident Report Form (Printed)</option><option>BSP Letter / Notice</option>
+      <option>Insurance Claim</option><option>STR Filing</option><option>Police / Incident Report</option>
+      <option>Internal Memo</option><option>Supporting Evidence</option>
+      <option>Corrective Action Plan</option><option>Approval / Sign-off Sheet</option><option>Other</option>
+    </select>
+    <select id="vaultFilterEvent" onchange="renderVault()"><option value="">All Events</option></select>
+    <select id="vaultFilterFormat" onchange="renderVault()"><option value="">All Formats</option><option value="pdf">PDF</option><option value="image">Image</option></select>
+    <input type="text" id="vaultSearch" placeholder="🔍 Search documents..." oninput="renderVault()">
+    <div style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink3)" id="vaultCount"></div>
+  </div>
+  <div class="doc-grid" id="docGrid"></div>
+  <div class="vault-empty" id="vaultEmpty">
+    <div class="ve-icon">📂</div>
+    <div class="ve-title">No documents stored yet</div>
+    <div style="font-size:13px">Upload a scanned incident report or supporting document above.</div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox-overlay" id="lightboxOverlay" style="display:none" onclick="closeLightboxOverlay(event)">
+  <div class="lightbox-box">
+    <div class="lightbox-header">
+      <span class="lh-title" id="lbTitle">Document Preview</span>
+      <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+    </div>
+    <div id="lbContent"></div>
+    <div class="lightbox-body" id="lbMeta"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ TAB 7: GOOGLE SYNC ═══════ -->
+<div class="tab-panel" id="panel-gsync">
+  <div class="page-title">
+    <div><h2>Google Sync</h2><div class="sub">Connect to Google Sheets & Drive · All data stays in your account</div></div>
+  </div>
+
+  <div class="gsync-status-bar" id="gSyncStatusBar">
+    <div class="status-dot" id="gStatusDot"></div>
+    <span id="gStatusText">Not connected — enter credentials below and click Save &amp; Connect</span>
+  </div>
+
+  <div class="gsync-card">
+    <div class="gsync-card-header">
+      <span class="gsync-card-title">🔑 Google API Credentials</span>
+      <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="btn btn-ghost btn-sm" style="color:#fff;font-size:11px">Open Cloud Console ↗</a>
+    </div>
+    <div class="gsync-card-body">
+      <div class="form-grid grid-2" style="margin-bottom:16px">
+        <div class="field">
+          <label>OAuth 2.0 Client ID <span class="req">*</span></label>
+          <input type="text" id="cfgClientId" placeholder="xxxx.apps.googleusercontent.com" style="font-family:var(--mono);font-size:12px">
+        </div>
+        <div class="field">
+          <label>API Key <span class="req">*</span></label>
+          <input type="text" id="cfgApiKey" placeholder="AIza..." style="font-family:var(--mono);font-size:12px">
+        </div>
+        <div class="field">
+          <label>Spreadsheet ID <span class="req">*</span></label>
+          <input type="text" id="cfgSheetId" placeholder="Paste from spreadsheet URL" style="font-family:var(--mono);font-size:12px">
+          <span class="hint">docs.google.com/spreadsheets/d/<strong>[ID]</strong>/edit</span>
+        </div>
+        <div class="field">
+          <label>Drive Folder ID (Document Vault)</label>
+          <input type="text" id="cfgFolderId" placeholder="Paste from Drive folder URL" style="font-family:var(--mono);font-size:12px">
+          <span class="hint">drive.google.com/drive/folders/<strong>[ID]</strong></span>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="initGoogleAuth()">💾 Save &amp; Connect</button>
+        <button class="btn btn-success" id="gSignInBtn" onclick="gSignIn()" style="display:none">🔐 Sign in with Google</button>
+        <button class="btn btn-secondary" id="gSignOutBtn" onclick="gSignOut()" style="display:none">Sign Out</button>
+        <button class="btn btn-ghost" onclick="clearConfig()">Clear Saved</button>
+      </div>
+      <div style="margin-top:14px;padding:10px 16px;background:var(--amber-bg);border-left:3px solid var(--gold);border-radius:0 4px 4px 0;font-size:12px;color:var(--amber)">
+        <strong>Scopes required:</strong> Google Sheets (read/write) · Google Drive (file upload) · Add your app URL to <em>Authorized JavaScript origins</em> in Google Cloud Console.
+      </div>
+    </div>
+  </div>
+
+  <div class="gsync-card">
+    <div class="gsync-card-header">
+      <span class="gsync-card-title">📋 Sheet Sync Controls</span>
+      <button class="btn btn-primary btn-sm" id="syncAllBtn" onclick="syncAll()">↑ Sync All Now</button>
+    </div>
+    <div class="gsync-card-body" style="padding:0">
+      <div style="padding:4px 20px">
+        <div class="sheet-row"><span class="sheet-row-icon">📋</span><div class="sheet-row-info"><div class="sheet-row-name">Incident Report Form</div><div class="sheet-row-sub">Appends each submitted incident as a new row automatically on submit</div></div><span class="sheet-row-status" id="sr-incident">—</span><button class="sheet-sync-btn" id="sb-incident" onclick="syncSheet('incident')">↑ Sync</button></div>
+        <div class="sheet-row"><span class="sheet-row-icon">📒</span><div class="sheet-row-info"><div class="sheet-row-name">Loss Event Log</div><div class="sheet-row-sub">Full register — clears and rewrites all rows</div></div><span class="sheet-row-status" id="sr-log">—</span><button class="sheet-sync-btn" id="sb-log" onclick="syncSheet('log')">↑ Sync</button></div>
+        <div class="sheet-row"><span class="sheet-row-icon">📊</span><div class="sheet-row-info"><div class="sheet-row-name">Quarterly Summary</div><div class="sheet-row-sub">Computed totals by category and status</div></div><span class="sheet-row-status" id="sr-quarterly">—</span><button class="sheet-sync-btn" id="sb-quarterly" onclick="syncSheet('quarterly')">↑ Sync</button></div>
+        <div class="sheet-row"><span class="sheet-row-icon">🚦</span><div class="sheet-row-info"><div class="sheet-row-name">KRI Dashboard</div><div class="sheet-row-sub">All 10 KRI values and RAG statuses</div></div><span class="sheet-row-status" id="sr-kri">—</span><button class="sheet-sync-btn" id="sb-kri" onclick="syncSheet('kri')">↑ Sync</button></div>
+        <div class="sheet-row"><span class="sheet-row-icon">🗺️</span><div class="sheet-row-info"><div class="sheet-row-name">Category Mapping</div><div class="sheet-row-sub">Basel II reference mapping table</div></div><span class="sheet-row-status" id="sr-mapping">—</span><button class="sheet-sync-btn" id="sb-mapping" onclick="syncSheet('mapping')">↑ Sync</button></div>
+        <div class="sheet-row" style="border-left:3px solid var(--accent);padding-left:8px"><span class="sheet-row-icon">🗄️</span><div class="sheet-row-info"><div class="sheet-row-name">Document Vault → Google Drive</div><div class="sheet-row-sub">Uploads pending scanned documents as PDF</div></div><span class="sheet-row-status" id="sr-vault">—</span><button class="sheet-sync-btn" id="sb-vault" onclick="syncVaultToDrive()">↑ Upload</button></div>
+      </div>
+      <div style="padding:16px 20px">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px">Sync Log</div>
+        <div class="sync-log-wrap" id="syncLogEl"><span class="log-dim">No sync activity yet.</span></div>
+        <div style="text-align:right;margin-top:6px"><button class="btn btn-ghost btn-sm" onclick="document.getElementById('syncLogEl').innerHTML='<span class=log-dim>Log cleared.</span>'">Clear log</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="gsync-card">
+    <div class="gsync-card-header"><span class="gsync-card-title">📖 Quick Setup Guide</span></div>
+    <div class="gsync-card-body" style="font-size:13px;color:var(--ink2);line-height:1.9">
+      <ol style="padding-left:20px">
+        <li>Go to <a href="https://console.cloud.google.com" target="_blank" style="color:var(--blue)">Google Cloud Console</a> → create/select a project</li>
+        <li>Enable <strong>Google Sheets API</strong> and <strong>Google Drive API</strong></li>
+        <li>Create an <strong>OAuth 2.0 Client ID</strong> (Web Application type) and an <strong>API Key</strong></li>
+        <li>Add your app URL to <strong>Authorized JavaScript origins</strong> (e.g. your Railway domain)</li>
+        <li>Create a Google Spreadsheet with tabs: <code style="background:#f0ede8;padding:1px 6px;border-radius:3px">Loss Event Log, Quarterly Summary, KRI Dashboard, Category Mapping, Incident Report Form</code></li>
+        <li>Create a Google Drive folder named <strong>Document Vault</strong> and copy its folder ID</li>
+        <li>Paste all IDs above → click <strong>Save &amp; Connect</strong> → <strong>Sign in with Google</strong></li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+</main>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════
+const BASEL_MAP = {
+  'Teller/Transaction Error':    'Execution, Delivery & Process Mgmt',
+  'Internal Fraud':              'Internal Fraud',
+  'External Fraud':              'External Fraud',
+  'IT/Systems Disruption':       'Business Disruption & System Failures',
+  'Regulatory Penalty':          'Clients, Products & Business Practices',
+  'Natural Disaster / Physical': 'Damage to Physical Assets',
+  'Employment & HR':             'Employment Practices & Workplace Safety',
+  'Agri-Lending Loss':           'Execution, Delivery & Process Mgmt',
+};
+
+const CAT_COLORS = {
+  'Teller/Transaction Error':    ['#1a3a6b','#e8eef8'],
+  'Internal Fraud':              ['#6b1a1a','#fde8e8'],
+  'External Fraud':              ['#6b2c00','#fef0e8'],
+  'IT/Systems Disruption':       ['#1a4a2a','#e8f4ec'],
+  'Regulatory Penalty':          ['#4a1a6b','#f0e8fe'],
+  'Natural Disaster / Physical': ['#4a3a00','#fef8e0'],
+  'Employment & HR':             ['#1a4a4a','#e0f4f4'],
+  'Agri-Lending Loss':           ['#2a4a1a','#eef4e0'],
+};
+
+const CAT_MAP = [
+  {cat:'Teller/Transaction Error',   basel:'Execution, Delivery & Process Mgmt',     desc:'Errors in transaction processing, settlement, or delivery',                                                    examples:'Cash shortage/overage, wrong posting, encoding error, misapplied payment, check clearing error',                                                                               trigger:'Any teller difference > PHP 0; failed transaction; customer complaint on error'},
+  {cat:'Internal Fraud',             basel:'Internal Fraud',                          desc:'Acts involving at least one internal party with intent to defraud or misappropriate',                          examples:'Unauthorized transactions, embezzlement, falsified documents, ghost loans, insider trading of bank assets',                                                                   trigger:'Any suspected fraudulent act by employee/officer regardless of amount'},
+  {cat:'External Fraud',             basel:'External Fraud',                          desc:'Acts by third parties intended to defraud or damage the bank',                                                examples:'Check fraud, loan fraud, identity theft, phishing, ATM skimming, robbery/hold-up',                                                                                             trigger:'Any fraudulent attempt detected or successful; criminal act against the bank'},
+  {cat:'IT/Systems Disruption',      basel:'Business Disruption & System Failures',   desc:'Disruptions from technology failures, utility outages, or infrastructure problems',                           examples:'System downtime, network failure, data corruption, cybersecurity incident, hardware failure, power outage',                                                                    trigger:'Any unplanned system downtime > 30 min; data breach; cybersecurity event'},
+  {cat:'Regulatory Penalty',         basel:'Clients, Products & Business Practices',  desc:'Fines, penalties, or sanctions from regulatory non-compliance',                                               examples:'BSP fines, AMLC penalties, PDIC sanctions, late report submission penalty, examination findings requiring MRA/MRI',                                                             trigger:'Any penalty, fine, or formal regulatory action; MRA/MRI from BSP examination'},
+  {cat:'Natural Disaster / Physical',basel:'Damage to Physical Assets',               desc:'Losses from natural disasters, accidents, or damage to physical assets',                                       examples:'Typhoon damage, flooding, fire, earthquake, vehicle accident, vandalism, power interruption damage',                                                                            trigger:'Any physical damage to bank property; disaster event affecting operations'},
+  {cat:'Employment & HR',            basel:'Employment Practices & Workplace Safety', desc:'Issues arising from employment relationships or workplace conditions',                                         examples:'Labor disputes, workplace injury, DOLE complaint, unauthorized absence affecting ops, discrimination claim',                                                                    trigger:'Any labor complaint; workplace incident; DOLE inquiry; HR-related operational impact'},
+  {cat:'Agri-Lending Loss',          basel:'Execution, Delivery & Process Mgmt',      desc:'Operational losses specific to agricultural lending and Agri-Agra compliance',                                examples:'Crop insurance claim processing error, agri-loan documentation failure, Agri-Agra compliance gap, PCIC claim denial due to documentation',                                       trigger:'Any agri-loan processing error; PCIC claim issue; Agri-Agra compliance finding'},
+];
+
+let lossEvents = [
+  {ref:'OLE-2026-001',dateDiscovered:'01/15/2026',dateOccurrence:'01/15/2026',category:'Teller/Transaction Error',baselType:'Execution, Delivery & Process Mgmt',desc:'Cash shortage of PHP 2,500 during end-of-day balancing at Main Branch teller window 2',gross:2500,recovery:0,net:2500,branch:'Main Branch',rootCat:'People',rootDesc:'Insufficient dual verification during cash count',corrective:'Teller retrained; mandatory dual-count policy enforced; surprise cash counts scheduled',status:'Resolved',dateResolved:'01/16/2026',approvedBy:'J. Dela Cruz, Ops Head',docRef:'IR-2026-001'},
+  {ref:'OLE-2026-002',dateDiscovered:'02/03/2026',dateOccurrence:'02/03/2026',category:'IT/Systems Disruption',baselType:'Business Disruption & System Failures',desc:'Core banking system downtime for 4 hours due to primary server hardware failure',gross:0,recovery:0,net:0,branch:'All Branches',rootCat:'Systems',rootDesc:'Aging server hardware; no failover mechanism in place',corrective:'Server replaced; automatic failover configured; BCP drill scheduled Q2 2026',status:'Resolved',dateResolved:'02/03/2026',approvedBy:'A. Reyes, IT Officer',docRef:'IR-2026-002'},
+  {ref:'OLE-2026-003',dateDiscovered:'02/20/2026',dateOccurrence:'02/18/2026',category:'External Fraud',baselType:'External Fraud',desc:'Attempted check kiting by depositor detected during clearing verification process',gross:0,recovery:0,net:0,branch:'Main Branch',rootCat:'External',rootDesc:'Deliberate fraudulent scheme by client to exploit float',corrective:'Account frozen and flagged; STR filed with AMLC; enhanced due diligence applied',status:'Closed',dateResolved:'03/01/2026',approvedBy:'M. Santos, Compliance',docRef:'IR-2026-003; STR-2026-015'},
+  {ref:'OLE-2026-004',dateDiscovered:'03/05/2026',dateOccurrence:'03/04/2026',category:'Natural Disaster / Physical',baselType:'Damage to Physical Assets',desc:'Typhoon damage to exterior signage and minor flooding in records storage room at Branch 2',gross:15000,recovery:8000,net:7000,branch:'Branch 2',rootCat:'External',rootDesc:'Typhoon; inadequate physical safeguards for records storage area',corrective:'Insurance claim filed; elevated storage installed; BCP review initiated',status:'Open',dateResolved:'',approvedBy:'R. Go, Branch Mgr',docRef:'IR-2026-004; INS-CLM-2026-001'},
+  {ref:'OLE-2026-005',dateDiscovered:'03/10/2026',dateOccurrence:'03/08/2026',category:'Regulatory Penalty',baselType:'Clients, Products & Business Practices',desc:'BSP monetary penalty of PHP 10,000 for late submission of FRP prudential report',gross:10000,recovery:0,net:10000,branch:'Head Office',rootCat:'Process',rootDesc:'Delayed report preparation due to staff capacity gap; no backup preparer assigned',corrective:'Reporting calendar enhanced; backup preparer designated; staff training on BSP deadlines',status:'Under Investigation',dateResolved:'',approvedBy:'L. Tan, Compliance',docRef:'IR-2026-005; BSP-LTR-2026-003'},
+];
+
+let vaultDocs = [];
+let pendingFiles = [];
+
+// ═══════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById('panel-' + name);
+  const btn   = document.getElementById('tab-' + name);
+  if (panel) panel.classList.add('active');
+  if (btn)   btn.classList.add('active');
+  if (name === 'log')       renderLog();
+  if (name === 'quarterly') renderQuarterly();
+  if (name === 'kri')       renderKRI();
+  if (name === 'mapping')   renderMapping();
+  if (name === 'vault')     renderVault();
+}
+
+// ═══════════════════════════════════════════════════════════
+// INCIDENT FORM
+// ═══════════════════════════════════════════════════════════
+function genRef() {
+  const seq = String(lossEvents.length + 1).padStart(3,'0');
+  return 'OLE-' + new Date().getFullYear() + '-' + seq;
+}
+
+function syncBaselType() {
+  const cat = document.getElementById('category').value;
+  document.getElementById('baselType').value = BASEL_MAP[cat] || '';
+}
+
+async function submitIncidentForm(e) {
+  e.preventDefault();
+  const evt = {
+    ref:            document.getElementById('evtRef').value.trim(),
+    dateReport:     document.getElementById('dateReport').value,
+    dateDiscovered: document.getElementById('dateDiscovered').value,
+    dateOccurrence: document.getElementById('dateOccurrence').value,
+    reportingEmp:   document.getElementById('reportingEmployee').value.trim(),
+    category:       document.getElementById('category').value,
+    baselType:      document.getElementById('baselType').value,
+    desc:           document.getElementById('eventDesc').value.trim(),
+    gross:          parseFloat(document.getElementById('grossLoss').value)  || 0,
+    recovery:       parseFloat(document.getElementById('recovery').value)   || 0,
+    net:            parseFloat(document.getElementById('netLoss').value)    || 0,
+    branch:         document.getElementById('department').value,
+    rootCat:        document.getElementById('rootCauseCat').value,
+    rootDesc:       document.getElementById('rootCauseDesc').value.trim(),
+    corrective:     document.getElementById('correctiveAction').value.trim(),
+    status:         document.getElementById('status').value,
+    dateResolved:   document.getElementById('dateResolved').value || '',
+    reportedBy:     document.getElementById('reportedBy').value.trim(),
+    reviewedBy:     document.getElementById('reviewedBy').value.trim(),
+    approvedBy:     document.getElementById('approvedBy').value.trim(),
+    docRef:         document.getElementById('docRef').value.trim(),
+    businessImpact: document.getElementById('businessImpact').value.trim(),
+    controlGap:     document.getElementById('controlGap').value.trim(),
+    eventType:      (document.querySelector('input[name="eventType"]:checked') || {}).value || 'Actual Loss',
+  };
+
+  lossEvents.push(evt);
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⟳ Saving…';
+
+  if (typeof accessToken !== 'undefined' && accessToken && typeof gapi !== 'undefined' && gapi.client) {
+    try {
+      const cfg = getConfig();
+      if (!cfg.sheetId) throw new Error('No Spreadsheet ID — go to Google Sync tab');
+
+      const incidentRow = [
+        evt.ref, evt.dateReport, evt.dateOccurrence, evt.dateDiscovered,
+        evt.reportingEmp, evt.branch, evt.category, evt.baselType,
+        evt.rootCat, evt.gross, evt.recovery, evt.net, evt.eventType,
+        evt.desc, evt.businessImpact, evt.rootDesc, evt.controlGap,
+        evt.corrective, evt.status, evt.dateResolved, evt.docRef,
+        evt.reportedBy, evt.reviewedBy, evt.approvedBy,
+      ];
+      const logRow = [
+        evt.ref, evt.dateDiscovered, evt.dateOccurrence, evt.category, evt.baselType,
+        evt.desc, evt.gross, evt.recovery, evt.net, evt.branch,
+        evt.rootCat, evt.rootDesc, evt.corrective, evt.status,
+        evt.dateResolved, evt.approvedBy, evt.docRef,
+      ];
+
+      async function appendToSheet(sheetName, headerRow, dataRow) {
+        let hasData = false;
+        try {
+          const chk = await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:cfg.sheetId, range:sheetName+'!A1'});
+          hasData = !!(chk.result.values && chk.result.values[0] && chk.result.values[0][0]);
+        } catch(_) {}
+        if (!hasData) {
+          await gapi.client.sheets.spreadsheets.values.update({
+            spreadsheetId:cfg.sheetId, range:sheetName+'!A1',
+            valueInputOption:'RAW',
+            resource:{values:[['RURAL BANK OF CALBAYOG CITY, INC.'],['OPERATIONAL LOSS EVENT LOG REGISTER'],['BSP Circular No. 900 / MORB Part Three, Chapter 5 / Basel II-III Framework'],[],headerRow]}
+          });
+        }
+        await gapi.client.sheets.spreadsheets.values.append({
+          spreadsheetId:cfg.sheetId, range:sheetName+'!A:A',
+          valueInputOption:'RAW', insertDataOption:'INSERT_ROWS',
+          resource:{values:[dataRow]}
+        });
+      }
+
+      const incidentHeaders = ['Event No.','Date of Report','Date of Occurrence','Date Discovered','Reporting Employee','Dept / Branch','Category','Basel II Event Type','Root Cause Category','Gross Loss (PHP)','Recovery (PHP)','Net Loss (PHP)','Event Type','Description','Business Impact','Root Cause Description','Control Gap','Corrective Action','Status','Date Resolved','Doc Ref','Reported By','Reviewed By','Approved By'];
+      const logHeaders = ['Event No.','Date Discovered','Date of Occurrence','Category','Basel II Event Type','Description of Event','Gross Loss (PHP)','Recovery (PHP)','Net Loss (PHP)','Business Unit / Branch','Root Cause Category','Root Cause Description','Corrective Action Taken','Status','Date Resolved','Approved By','Supporting Document Ref.'];
+
+      await Promise.all([
+        appendToSheet('Incident Report Form', incidentHeaders, incidentRow),
+        appendToSheet('Loss Event Log',       logHeaders,      logRow),
+      ]);
+      addSyncLog('✓ Auto-saved on submit: ' + evt.ref, 'log-ok');
+      showToast('✓ Saved to Google Sheets — ' + evt.ref, 'success');
+    } catch(err) {
+      const msg = err.result?.error?.message || err.message || String(err);
+      addSyncLog('✗ Auto-save failed for ' + evt.ref + ': ' + msg, 'log-err');
+      showToast('⚠ Saved locally. Sheets error: ' + msg, 'error');
+    }
+  } else {
+    showToast('✓ Saved locally — connect Google Sync to push to Sheets', 'success');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '✓ Submit Incident Report';
+  resetIncidentForm();
+}
+
+function resetIncidentForm() {
+  document.getElementById('incidentForm').reset();
+  document.getElementById('dateReport').value = new Date().toISOString().split('T')[0];
+  document.getElementById('evtRef').value = genRef();
+  document.getElementById('baselType').value = '';
+  document.getElementById('netLoss').value = '';
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOSS EVENT LOG
+// ═══════════════════════════════════════════════════════════
+function renderLog() {
+  const filter   = document.getElementById('logFilterStatus').value;
+  const filtered = filter ? lossEvents.filter(e => e.status === filter) : lossEvents;
+  const tbody    = document.getElementById('logBody');
+  tbody.innerHTML = '';
+  document.getElementById('logEmpty').style.display   = filtered.length ? 'none' : 'block';
+  document.getElementById('logTable').style.display   = filtered.length ? '' : 'none';
+  document.getElementById('logCount').textContent     = 'Showing ' + filtered.length + ' of ' + lossEvents.length + ' events';
+
+  filtered.forEach(evt => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="mono">' + evt.ref + '</td>' +
+      '<td class="mono">' + (evt.dateDiscovered||'—') + '</td>' +
+      '<td class="mono">' + (evt.dateOccurrence||'—') + '</td>' +
+      '<td><strong>' + evt.category + '</strong></td>' +
+      '<td style="font-size:11px;color:var(--ink3)">' + (evt.baselType||'—') + '</td>' +
+      '<td style="max-width:220px;font-size:12px">' + evt.desc + '</td>' +
+      '<td class="mono" style="text-align:right">' + fmtPHP(evt.gross) + '</td>' +
+      '<td class="mono" style="text-align:right">' + fmtPHP(evt.recovery) + '</td>' +
+      '<td class="mono" style="text-align:right;font-weight:600">' + fmtPHP(evt.net) + '</td>' +
+      '<td style="font-size:12px">' + (evt.branch||'—') + '</td>' +
+      '<td style="font-size:12px">' + (evt.rootCat||'—') + '</td>' +
+      '<td>' + statusBadge(evt.status) + '</td>' +
+      '<td style="font-size:12px">' + (evt.approvedBy||'—') + '</td>' +
+      '<td style="font-family:var(--mono);font-size:11px;color:var(--ink3)">' + (evt.docRef||'—') + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// QUARTERLY SUMMARY
+// ═══════════════════════════════════════════════════════════
+function renderQuarterly() {
+  const totalGross = lossEvents.reduce((s,e)=>s+e.gross,0);
+  const totalRec   = lossEvents.reduce((s,e)=>s+e.recovery,0);
+  const totalNet   = lossEvents.reduce((s,e)=>s+e.net,0);
+
+  document.getElementById('qStats').innerHTML =
+    statCard('Total Events', lossEvents.length, 'Q1 2026') +
+    statCard('Total Gross Loss', '₱'+totalGross.toLocaleString(), 'Before recoveries') +
+    statCard('Total Recovery', '₱'+totalRec.toLocaleString(), 'Insurance & other', 'var(--green)') +
+    statCard('Net Loss', '₱'+totalNet.toLocaleString(), 'After recoveries', 'var(--accent)');
+
+  const catBody = document.getElementById('qCatBody');
+  catBody.innerHTML = '';
+  Object.keys(BASEL_MAP).forEach(cat => {
+    const evts  = lossEvents.filter(e=>e.category===cat);
+    const gross = evts.reduce((s,e)=>s+e.gross,0);
+    const rec   = evts.reduce((s,e)=>s+e.recovery,0);
+    const net   = evts.reduce((s,e)=>s+e.net,0);
+    const pct   = totalGross > 0 ? (gross/totalGross*100).toFixed(1) : '0.0';
+    const avg   = evts.length > 0 ? gross/evts.length : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><strong>'+cat+'</strong></td>' +
+      '<td style="font-size:11px;color:var(--ink3)">'+BASEL_MAP[cat]+'</td>' +
+      '<td class="mono" style="text-align:right">'+evts.length+'</td>' +
+      '<td class="mono" style="text-align:right">'+fmtPHP(gross)+'</td>' +
+      '<td class="mono" style="text-align:right">'+fmtPHP(rec)+'</td>' +
+      '<td class="mono" style="text-align:right">'+fmtPHP(net)+'</td>' +
+      '<td class="mono" style="text-align:right">'+pct+'%</td>' +
+      '<td class="mono" style="text-align:right">'+fmtPHP(avg)+'</td>';
+    catBody.appendChild(tr);
+  });
+  const totTr = document.createElement('tr');
+  totTr.style.background='#f0ede8';
+  totTr.innerHTML =
+    '<td style="font-weight:700">TOTAL</td><td></td>' +
+    '<td class="mono" style="text-align:right;font-weight:700">'+lossEvents.length+'</td>' +
+    '<td class="mono" style="text-align:right;font-weight:700">'+fmtPHP(totalGross)+'</td>' +
+    '<td class="mono" style="text-align:right;font-weight:700">'+fmtPHP(totalRec)+'</td>' +
+    '<td class="mono" style="text-align:right;font-weight:700">'+fmtPHP(totalNet)+'</td>' +
+    '<td class="mono" style="text-align:right;font-weight:700">100.0%</td>' +
+    '<td class="mono" style="text-align:right;font-weight:700">'+fmtPHP(lossEvents.length?totalGross/lossEvents.length:0)+'</td>';
+  catBody.appendChild(totTr);
+
+  const sBody = document.getElementById('qStatusBody');
+  sBody.innerHTML = '';
+  ['Open','Under Investigation','Resolved','Closed'].forEach(st => {
+    const evts  = lossEvents.filter(e=>e.status===st);
+    const gross = evts.reduce((s,e)=>s+e.gross,0);
+    const pct   = lossEvents.length ? (evts.length/lossEvents.length*100).toFixed(1) : '0.0';
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+statusBadge(st)+'</td>' +
+      '<td class="mono" style="text-align:right">'+evts.length+'</td>' +
+      '<td class="mono" style="text-align:right">'+pct+'%</td>' +
+      '<td class="mono" style="text-align:right">'+fmtPHP(gross)+'</td>';
+    sBody.appendChild(tr);
+  });
+}
+
+function statCard(label, value, note, color) {
+  return '<div class="summary-stat"><div class="stat-label">'+label+'</div>' +
+    '<div class="stat-value" style="'+(color?'color:'+color+';font-size:22px':'')+'">'+ value+'</div>' +
+    '<div class="stat-note">'+note+'</div></div>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// KRI DASHBOARD
+// ═══════════════════════════════════════════════════════════
+function renderKRI() {
+  const totalGross = lossEvents.reduce((s,e)=>s+e.gross,0);
+  const openOld    = lossEvents.filter(e=>e.status==='Open'&&!e.dateResolved).length;
+  const material   = lossEvents.filter(e=>e.gross>100000).length;
+
+  const kris = [
+    {label:'Total Loss Events (Quarter)',         formula:'Count of events in period',           value:lossEvents.length,                threshold:'< 5 per quarter',       rag:lossEvents.length<5?'GREEN':lossEvents.length<8?'AMBER':'RED',    remark:'Auto-calculated'},
+    {label:'Total Gross Loss Amount (PHP)',        formula:'Sum of gross losses',                 value:'₱'+totalGross.toLocaleString(),  threshold:'< PHP 50,000 / quarter', rag:totalGross<50000?'GREEN':totalGross<100000?'AMBER':'RED',          remark:'Auto-calculated'},
+    {label:'Gross Loss as % of Gross Income',      formula:'Total Gross Loss / Gross Income',     value:'N/A',                            threshold:'< 1.0%',                 rag:null,                                                             remark:'Requires gross income input'},
+    {label:'Average Resolution Time (Days)',       formula:'Avg days from discovery to resolved', value:'N/A',                            threshold:'< 15 business days',     rag:null,                                                             remark:'Manual computation required'},
+    {label:'% Events with Root Cause Analysis',    formula:'Events with RCA / Total Events',      value:'N/A',                            threshold:'100%',                   rag:null,                                                             remark:'Target: all events analyzed'},
+    {label:'Recurring Events (Same Root Cause)',   formula:'Repeat events within 12 months',      value:0,                                threshold:'0',                      rag:'GREEN',                                                          remark:'No recurring events detected'},
+    {label:'Near-Miss to Actual Loss Ratio',       formula:'Near-misses / Actual loss events',    value:'N/A',                            threshold:'> 1.0',                  rag:null,                                                             remark:'Near-miss reporting to be enhanced'},
+    {label:'Open Events Aging > 30 Days',          formula:'Open events > 30 days old',           value:openOld,                          threshold:'0',                      rag:openOld===0?'GREEN':'AMBER',                                      remark:'Track monthly'},
+    {label:'Material Events (> PHP 100K)',         formula:'Count above materiality threshold',   value:material,                         threshold:'0',                      rag:material===0?'GREEN':'RED',                                       remark:'Materiality: PHP 100,000'},
+    {label:'IT System Uptime (%)',                 formula:'Uptime hours / Total hours',          value:'N/A',                            threshold:'> 99.5%',                rag:null,                                                             remark:'IT monitoring required'},
+  ];
+
+  const ragClass = r => r==='GREEN'?'rag-green':r==='AMBER'?'rag-amber':r==='RED'?'rag-red':'rag-gray';
+  const badgeCls = r => r==='GREEN'?'badge-green':r==='AMBER'?'badge-amber':r==='RED'?'badge-red':'badge-gray';
+
+  document.getElementById('kriGrid').innerHTML = kris.map(k =>
+    '<div class="kri-card">' +
+      '<div class="rag-dot ' + ragClass(k.rag) + '"></div>' +
+      '<div class="kri-label">' + k.label + '</div>' +
+      '<div class="kri-value">' + k.value + '</div>' +
+      '<div class="kri-sub">' + k.formula + '</div>' +
+      '<div class="kri-threshold">Target: ' + k.threshold + '</div>' +
+      '<div style="margin-top:10px"><span class="badge ' + badgeCls(k.rag) + '">' + (k.rag||'N/A') + '</span></div>' +
+      '<div style="font-size:11px;color:var(--ink3);margin-top:6px">' + k.remark + '</div>' +
+    '</div>'
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// CATEGORY MAPPING
+// ═══════════════════════════════════════════════════════════
+function renderMapping() {
+  document.getElementById('catMapGrid').innerHTML = CAT_MAP.map(c => {
+    const [bg] = CAT_COLORS[c.cat] || ['#333'];
+    return '<div class="cat-card">' +
+      '<div style="background:'+bg+';color:#fff;padding:12px 18px">' +
+        '<div style="font-weight:700;font-size:14px">'+c.cat+'</div>' +
+        '<div style="font-size:11px;opacity:.75;margin-top:2px;font-family:var(--mono)">'+c.basel+'</div>' +
+      '</div>' +
+      '<div class="cat-card-body">' +
+        '<div>'+c.desc+'</div>' +
+        '<div class="examples"><strong>Examples:</strong> '+c.examples+'</div>' +
+        '<div class="trigger">🚨 <strong>Report when:</strong> '+c.trigger+'</div>' +
+      '</div></div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// DOCUMENT VAULT
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const dz = document.getElementById('vaultDropZone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleVaultFiles(e.dataTransfer.files); });
+});
+
+function handleVaultFiles(fileList) {
+  if (!fileList || !fileList.length) return;
+  pendingFiles = Array.from(fileList).filter(f => {
+    const ok    = f.type.startsWith('image/') || f.type === 'application/pdf';
+    const small = f.size <= 20*1024*1024;
+    if (!ok)    showToast('Unsupported format: ' + f.name, 'error');
+    if (!small) showToast('File too large (max 20MB): ' + f.name, 'error');
+    return ok && small;
+  });
+  if (!pendingFiles.length) return;
+  populateVaultEventDropdowns();
+  const row = document.getElementById('uploadPreviewRow');
+  row.innerHTML = '';
+  pendingFiles.forEach(f => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'text-align:center';
+    if (f.type.startsWith('image/')) {
+      const url = URL.createObjectURL(f);
+      wrap.innerHTML = '<img src="'+url+'" style="width:90px;height:70px;object-fit:cover;border-radius:4px;border:1px solid var(--border);display:block;margin-bottom:4px"><div style="font-family:var(--mono);font-size:10px;color:var(--ink3);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f.name+'</div><span class="doc-tag tag-img">IMG</span>';
+    } else {
+      wrap.innerHTML = '<div style="width:90px;height:70px;background:#fde8e8;border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:4px">📄</div><div style="font-family:var(--mono);font-size:10px;color:var(--ink3);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f.name+'</div><span class="doc-tag tag-pdf">PDF</span>';
+    }
+    row.appendChild(wrap);
+  });
+  document.getElementById('uploadMetaModal').style.display = 'block';
+  document.getElementById('uploadMetaModal').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function populateVaultEventDropdowns() {
+  ['vaultLinkRef','vaultFilterEvent'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const isFilter = id === 'vaultFilterEvent';
+    sel.innerHTML = isFilter ? '<option value="">All Events</option>' : '<option value="">-- Select Event --</option>';
+    lossEvents.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.ref;
+      opt.textContent = isFilter ? e.ref : e.ref + ' — ' + e.category;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+function confirmVaultUpload() {
+  const linkRef = document.getElementById('vaultLinkRef').value;
+  const docType = document.getElementById('vaultDocType').value;
+  const upBy    = document.getElementById('vaultUploadedBy').value.trim();
+  if (!linkRef || !docType || !upBy) { showToast('Fill in all required fields', 'error'); return; }
+
+  const prog = document.createElement('div');
+  prog.className = 'upload-progress';
+  prog.innerHTML = '<div style="font-size:12px;font-weight:600;margin-bottom:0">Saving ' + pendingFiles.length + ' file(s)…</div><div class="progress-bar-wrap"><div class="progress-bar-fill" id="pbFill" style="width:0%"></div></div>';
+  document.body.appendChild(prog);
+  let pct = 0;
+  const iv = setInterval(() => { pct = Math.min(pct + Math.random()*20+8, 92); const el=document.getElementById('pbFill'); if(el) el.style.width=pct+'%'; if(pct>=92) clearInterval(iv); }, 140);
+
+  setTimeout(() => {
+    clearInterval(iv);
+    const el = document.getElementById('pbFill'); if(el) el.style.width='100%';
+    setTimeout(() => {
+      prog.remove();
+      pendingFiles.forEach((f,i) => {
+        vaultDocs.push({
+          id:'DOC-'+Date.now()+'-'+i, name:f.name, size:f.size,
+          format: f.type==='application/pdf'?'pdf':'image',
+          preview: f.type.startsWith('image/')?URL.createObjectURL(f):null,
+          fileObj: f,
+          linkRef, docType,
+          docRef:  document.getElementById('vaultDocRef').value.trim(),
+          notes:   document.getElementById('vaultDocNotes').value.trim(),
+          upBy,
+          uploadedAt: new Date().toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'}),
+        });
+      });
+      pendingFiles = [];
+      cancelVaultUpload();
+      renderVault();
+      showToast('Documents saved to vault', 'success');
+    }, 300);
+  }, 1200);
+}
+
+function cancelVaultUpload() {
+  document.getElementById('uploadMetaModal').style.display = 'none';
+  ['vaultLinkRef','vaultDocType','vaultDocRef','vaultDocNotes','vaultUploadedBy'].forEach(id => { document.getElementById(id).value=''; });
+  document.getElementById('uploadPreviewRow').innerHTML = '';
+  document.getElementById('vaultFileInput').value = '';
+  pendingFiles = [];
+}
+
+function renderVault() {
+  populateVaultEventDropdowns();
+  const typeF   = document.getElementById('vaultFilterType')?.value || '';
+  const eventF  = document.getElementById('vaultFilterEvent')?.value || '';
+  const fmtF    = document.getElementById('vaultFilterFormat')?.value || '';
+  const searchQ = (document.getElementById('vaultSearch')?.value || '').toLowerCase();
+
+  const filtered = vaultDocs.filter(d => {
+    if (typeF  && d.docType !== typeF)  return false;
+    if (eventF && d.linkRef !== eventF) return false;
+    if (fmtF   && d.format  !== fmtF)  return false;
+    if (searchQ && ![d.name,d.linkRef,d.docType,d.notes||''].join(' ').toLowerCase().includes(searchQ)) return false;
+    return true;
+  });
+
+  const grid     = document.getElementById('docGrid');
+  const empty    = document.getElementById('vaultEmpty');
+  const statsBar = document.getElementById('vaultStatsBar');
+  const filters  = document.getElementById('vaultFilters');
+  const cnt      = document.getElementById('vaultCount');
+
+  const totalPDF  = vaultDocs.filter(d=>d.format==='pdf').length;
+  const totalImg  = vaultDocs.filter(d=>d.format==='image').length;
+  const linkedEvt = new Set(vaultDocs.map(d=>d.linkRef)).size;
+
+  statsBar.innerHTML = vaultDocs.length===0 ? '' :
+    '<div class="vault-stat"><div class="vs-num">'+vaultDocs.length+'</div><div class="vs-label">Total Docs</div></div>' +
+    '<div class="vault-stat"><div class="vs-num" style="color:var(--accent)">'+totalPDF+'</div><div class="vs-label">PDFs</div></div>' +
+    '<div class="vault-stat"><div class="vs-num" style="color:var(--green)">'+totalImg+'</div><div class="vs-label">Images</div></div>' +
+    '<div class="vault-stat"><div class="vs-num" style="color:var(--blue)">'+linkedEvt+'</div><div class="vs-label">Linked Events</div></div>';
+
+  if (vaultDocs.length===0) { empty.style.display='block'; grid.style.display='none'; if(filters)filters.style.display='none'; return; }
+  empty.style.display='none'; grid.style.display='grid';
+  if (filters) filters.style.display='flex';
+  if (cnt) cnt.textContent='Showing '+filtered.length+' of '+vaultDocs.length;
+
+  grid.innerHTML = '';
+  if (!filtered.length) { grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--ink3)">No documents match the current filter.</div>'; return; }
+
+  filtered.forEach(doc => {
+    const sz = doc.size<1048576 ? Math.round(doc.size/1024)+' KB' : (doc.size/1048576).toFixed(1)+' MB';
+    const prev = doc.format==='image'&&doc.preview
+      ? '<img src="'+doc.preview+'" style="width:100%;height:100%;object-fit:cover" loading="lazy">'
+      : '<span class="doc-type-icon">'+(doc.format==='pdf'?'📄':'🖼️')+'</span>';
+    const card = document.createElement('div');
+    card.className = 'doc-card';
+    card.innerHTML =
+      '<div class="doc-preview">'+prev+'<span class="doc-page-count">'+doc.format.toUpperCase()+'</span></div>' +
+      '<div class="doc-info">' +
+        '<div class="doc-ref">'+(doc.linkRef||'—')+'</div>' +
+        '<div class="doc-name" title="'+doc.name+'">'+doc.name+'</div>' +
+        '<div style="margin-top:4px"><span class="doc-tag '+(doc.format==='pdf'?'tag-pdf':'tag-img')+'">'+doc.format.toUpperCase()+'</span><span class="doc-tag">'+doc.docType+'</span></div>' +
+        '<div class="doc-meta"><span>📅 '+doc.uploadedAt+'</span><span>💾 '+sz+'</span><span>👤 '+doc.upBy+'</span></div>' +
+        (doc.notes?'<div style="font-size:11px;color:var(--ink3);margin-top:6px;font-style:italic">'+doc.notes+'</div>':'') +
+        '<div class="doc-actions" onclick="event.stopPropagation()">' +
+          '<button class="btn btn-secondary btn-sm" onclick="openVaultDoc(\''+doc.id+'\')">👁 View</button>' +
+          '<button class="btn btn-ghost btn-sm" style="color:var(--accent2)" onclick="deleteVaultDoc(\''+doc.id+'\')">🗑</button>' +
+        '</div>' +
+      '</div>';
+    card.addEventListener('click', () => openVaultDoc(doc.id));
+    grid.appendChild(card);
+  });
+}
+
+function openVaultDoc(id) {
+  const doc = vaultDocs.find(d=>d.id===id);
+  if (!doc) return;
+  document.getElementById('lbTitle').textContent = doc.name;
+  const content = document.getElementById('lbContent');
+  if (doc.format==='image'&&doc.preview) {
+    content.innerHTML = '<img src="'+doc.preview+'" class="lightbox-img" alt="'+doc.name+'">';
+  } else if (doc.format==='pdf'&&doc.fileObj) {
+    content.innerHTML = '<iframe src="'+URL.createObjectURL(doc.fileObj)+'" class="lightbox-pdf" title="'+doc.name+'"></iframe>';
+  } else {
+    content.innerHTML = '<div style="padding:48px;text-align:center;font-size:40px">📄</div>';
+  }
+  const sz = doc.size<1048576 ? Math.round(doc.size/1024)+' KB' : (doc.size/1048576).toFixed(1)+' MB';
+  const dlUrl = doc.preview || (doc.fileObj ? URL.createObjectURL(doc.fileObj) : '#');
+  document.getElementById('lbMeta').innerHTML =
+    '<div class="lightbox-meta-grid">' +
+      '<div><div class="lm-label">Event Reference</div><div class="lm-value">'+(doc.linkRef||'—')+'</div></div>' +
+      '<div><div class="lm-label">Document Type</div><div class="lm-value">'+doc.docType+'</div></div>' +
+      '<div><div class="lm-label">Doc Reference No.</div><div class="lm-value">'+(doc.docRef||'—')+'</div></div>' +
+      '<div><div class="lm-label">File Size</div><div class="lm-value">'+sz+'</div></div>' +
+      '<div><div class="lm-label">Uploaded By</div><div class="lm-value">'+doc.upBy+'</div></div>' +
+      '<div><div class="lm-label">Upload Date</div><div class="lm-value">'+doc.uploadedAt+'</div></div>' +
+    '</div>' +
+    (doc.notes?'<div style="padding:10px 14px;background:var(--amber-bg);border-left:3px solid var(--gold);border-radius:0 4px 4px 0;font-size:13px;color:var(--amber);margin-bottom:12px">📝 '+doc.notes+'</div>':'') +
+    '<div class="btn-row"><a href="'+dlUrl+'" download="'+doc.name+'" class="btn btn-primary btn-sm">⬇ Download</a><button class="btn btn-secondary btn-sm" onclick="closeLightbox()">✕ Close</button></div>';
+  document.getElementById('lightboxOverlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightboxOverlay(e) { if (e.target===document.getElementById('lightboxOverlay')) closeLightbox(); }
+function closeLightbox() { document.getElementById('lightboxOverlay').style.display='none'; document.body.style.overflow=''; }
+
+function deleteVaultDoc(id) {
+  if (!confirm('Remove this document from the vault?')) return;
+  vaultDocs = vaultDocs.filter(d=>d.id!==id);
+  renderVault();
+  showToast('Document removed from vault');
+}
+
+// ═══════════════════════════════════════════════════════════
+// GOOGLE SYNC — single clean implementation using gapi
+// ═══════════════════════════════════════════════════════════
+const SHEET_NAMES = {
+  incident: 'Incident Report Form',
+  log:      'Loss Event Log',
+  quarterly:'Quarterly Summary',
+  kri:      'KRI Dashboard',
+  mapping:  'Category Mapping',
+};
+
+let accessToken = null;
+let tokenClient = null;
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+
+function getConfig() {
+  return {
+    clientId: document.getElementById('cfgClientId').value.trim(),
+    apiKey:   document.getElementById('cfgApiKey').value.trim(),
+    sheetId:  document.getElementById('cfgSheetId').value.trim(),
+    folderId: document.getElementById('cfgFolderId').value.trim(),
+  };
+}
+function saveConfig() {
+  try { localStorage.setItem('rbcci_cfg', JSON.stringify(getConfig())); } catch(_) {}
+}
+function loadConfig() {
+  try {
+    const c = JSON.parse(localStorage.getItem('rbcci_cfg') || '{}');
+    if (c.clientId) document.getElementById('cfgClientId').value = c.clientId;
+    if (c.apiKey)   document.getElementById('cfgApiKey').value   = c.apiKey;
+    if (c.sheetId)  document.getElementById('cfgSheetId').value  = c.sheetId;
+    if (c.folderId) document.getElementById('cfgFolderId').value = c.folderId;
+  } catch(_) {}
+}
+function clearConfig() {
+  try { localStorage.removeItem('rbcci_cfg'); } catch(_) {}
+  ['cfgClientId','cfgApiKey','cfgSheetId','cfgFolderId'].forEach(id => document.getElementById(id).value='');
+  showToast('Credentials cleared');
+}
+
+function setStatus(type, msg) {
+  const bar  = document.getElementById('gSyncStatusBar');
+  const dot  = document.getElementById('gStatusDot');
+  const text = document.getElementById('gStatusText');
+  bar.className = 'gsync-status-bar' + (type==='green'?' connected':type==='red'?' error':'');
+  dot.className = 'status-dot' + (type==='green'?' green':type==='red'?' red':type==='orange'?' orange':type==='spinning'?' spinning':'');
+  text.textContent = msg;
+  document.getElementById('hdrDot').className = 'gs-dot-header' + (type==='green'?' on':'');
+}
+
+function addSyncLog(msg, cls) {
+  const el = document.getElementById('syncLogEl');
+  const ts = new Date().toLocaleTimeString('en-PH');
+  el.innerHTML += '\n<span class="log-dim">['+ts+']</span> <span class="'+(cls||'')+'">'+msg+'</span>';
+  el.scrollTop = el.scrollHeight;
+}
+
+function initGoogleAuth() {
+  const cfg = getConfig();
+  if (!cfg.clientId || !cfg.apiKey) { showToast('Enter Client ID and API Key first', 'error'); return; }
+  saveConfig();
+  setStatus('spinning', 'Loading Google APIs…');
+  if (typeof gapi === 'undefined') { setStatus('red', 'Google API script not loaded. Check internet connection.'); return; }
+  gapi.load('client', async () => {
+    try {
+      await gapi.client.init({
+        apiKey: cfg.apiKey,
+        discoveryDocs: [
+          'https://sheets.googleapis.com/$discovery/rest?version=v4',
+          'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest',
+        ],
+      });
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: cfg.clientId,
+        scope: SCOPES,
+        callback: (resp) => {
+          if (resp.error) { setStatus('red', 'Auth error: ' + resp.error); return; }
+          accessToken = resp.access_token;
+          gapi.client.setToken({ access_token: accessToken });
+          setStatus('green', 'Connected to Google — ready to sync');
+          document.getElementById('gSignInBtn').style.display = 'none';
+          document.getElementById('gSignOutBtn').style.display = 'inline-flex';
+          addSyncLog('✓ OAuth token obtained', 'log-ok');
+          showToast('Google account connected', 'success');
+        },
+      });
+      setStatus('orange', 'Ready — click Sign in with Google to authorise');
+      document.getElementById('gSignInBtn').style.display = 'inline-flex';
+    } catch(err) {
+      setStatus('red', 'Init failed: ' + (err.message || err));
+    }
+  });
+}
+
+function gSignIn()  { if (!tokenClient) { showToast('Click Save & Connect first', 'error'); return; } tokenClient.requestAccessToken({ prompt: 'consent' }); }
+function gSignOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken, ()=>{});
+  accessToken = null;
+  gapi.client.setToken(null);
+  setStatus('', 'Signed out');
+  document.getElementById('gSignInBtn').style.display = 'inline-flex';
+  document.getElementById('gSignOutBtn').style.display = 'none';
+  showToast('Signed out of Google');
+}
+
+function requireAuth() {
+  if (!accessToken) { showToast('Connect Google account first — go to Google Sync tab', 'error'); switchTab('gsync'); return false; }
+  if (!getConfig().sheetId) { showToast('Enter Spreadsheet ID in Google Sync tab', 'error'); return false; }
+  return true;
+}
+
+function setSyncBtnState(tab, state) {
+  const btn  = document.getElementById('sb-' + tab);
+  const stat = document.getElementById('sr-' + tab);
+  if (!btn) return;
+  if (state==='syncing') { btn.disabled=true; btn.className='sheet-sync-btn syncing'; btn.textContent='⟳ Syncing…'; if(stat) stat.innerHTML='<span style="color:var(--amber)">⟳</span>'; }
+  else if (state==='done') { btn.disabled=false; btn.className='sheet-sync-btn synced'; btn.textContent='✓ Done'; if(stat) stat.innerHTML='<span style="color:var(--green)">✓ '+new Date().toLocaleTimeString()+'</span>'; setTimeout(()=>{btn.className='sheet-sync-btn';btn.textContent='↑ Sync';},3000); }
+  else { btn.disabled=false; btn.className='sheet-sync-btn'; btn.textContent='↑ Retry'; if(stat) stat.innerHTML='<span style="color:var(--accent2)">✗ Error</span>'; }
+}
+
+async function syncAll() {
+  if (!requireAuth()) return;
+  const allBtn = document.getElementById('syncAllBtn');
+  allBtn.disabled = true; allBtn.textContent = '⟳ Syncing All…';
+  addSyncLog('=== Sync All started ===', 'log-info');
+  for (const tab of ['incident','log','quarterly','kri','mapping']) {
+    await syncSheet(tab);
+    await new Promise(r => setTimeout(r, 300));
+  }
+  await syncVaultToDrive();
+  allBtn.disabled = false; allBtn.textContent = '↑ Sync All Now';
+  addSyncLog('=== Sync All complete ===', 'log-info');
+  showToast('All sheets synced to Google', 'success');
+}
+
+async function syncSheet(tab) {
+  if (!requireAuth()) return;
+  setSyncBtnState(tab, 'syncing');
+  const cfg       = getConfig();
+  const sheetName = SHEET_NAMES[tab];
+  try {
+    const rows = buildSheetRows(tab);
+    await gapi.client.sheets.spreadsheets.values.clear({ spreadsheetId:cfg.sheetId, range:sheetName+'!A1:Z2000' });
+    await gapi.client.sheets.spreadsheets.values.update({ spreadsheetId:cfg.sheetId, range:sheetName+'!A1', valueInputOption:'RAW', resource:{values:rows} });
+    addSyncLog('✓ '+sheetName+' — '+(rows.length)+' rows written', 'log-ok');
+    setSyncBtnState(tab, 'done');
+  } catch(err) {
+    const msg = err.result?.error?.message || err.message || String(err);
+    addSyncLog('✗ '+sheetName+' failed: '+msg, 'log-err');
+    setSyncBtnState(tab, 'error');
+    showToast('Sync failed: '+msg, 'error');
+  }
+}
+
+function buildSheetRows(tab) {
+  const eventRow = e => [e.ref,e.dateDiscovered,e.dateOccurrence,e.category,e.baselType,e.desc,e.gross,e.recovery,e.net,e.branch,e.rootCat,e.rootDesc,e.corrective,e.status,e.dateResolved||'',e.approvedBy,e.docRef||''];
+  const logHeaders = ['Event No.','Date Discovered','Date of Occurrence','Category','Basel II Event Type','Description of Event','Gross Loss (PHP)','Recovery (PHP)','Net Loss (PHP)','Business Unit / Branch','Root Cause Category','Root Cause Description','Corrective Action Taken','Status','Date Resolved','Approved By','Supporting Document Ref.'];
+
+  if (tab==='incident') {
+    return [['RURAL BANK OF CALBAYOG CITY, INC.'],['OPERATIONAL LOSS EVENT LOG REGISTER'],['BSP Circular No. 900 / MORB Part Three, Chapter 5 / Basel II-III Framework'],[],logHeaders,...lossEvents.map(eventRow)];
+  }
+  if (tab==='log') {
+    return [['RURAL BANK OF CALBAYOG CITY, INC.'],['OPERATIONAL LOSS EVENT LOG REGISTER'],['BSP Circular No. 900 / MORB Part Three, Chapter 5 / Basel II-III Framework'],[],logHeaders,...lossEvents.map(eventRow)];
+  }
+  if (tab==='quarterly') {
+    const totG = lossEvents.reduce((s,e)=>s+e.gross,0);
+    const catRows = Object.keys(BASEL_MAP).map(cat => {
+      const evts=lossEvents.filter(e=>e.category===cat), g=evts.reduce((s,e)=>s+e.gross,0), r=evts.reduce((s,e)=>s+e.recovery,0), n=evts.reduce((s,e)=>s+e.net,0);
+      return [cat,BASEL_MAP[cat],evts.length,g,r,n,totG>0?g/totG:0,evts.length?g/evts.length:0];
+    });
+    const statRows = ['Open','Under Investigation','Resolved','Closed'].map(st => { const evts=lossEvents.filter(e=>e.status===st); return [st,evts.length,lossEvents.length?evts.length/lossEvents.length:0,evts.reduce((s,e)=>s+e.gross,0)]; });
+    return [['RBCCI OPERATIONAL LOSS EVENTS - QUARTERLY SUMMARY ANALYSIS'],['Reporting Period: Q1 2026 (January - March 2026)'],['Category','Basel II Event Type','No. of Events','Gross Loss (PHP)','Recovery (PHP)','Net Loss (PHP)','% of Total Gross Loss','Avg. Loss per Event (PHP)'],...catRows,['TOTAL','',lossEvents.length,lossEvents.reduce((s,e)=>s+e.gross,0),lossEvents.reduce((s,e)=>s+e.recovery,0),lossEvents.reduce((s,e)=>s+e.net,0),1,lossEvents.length?lossEvents.reduce((s,e)=>s+e.gross,0)/lossEvents.length:0],[],['EVENT STATUS SUMMARY'],['Status','Count','% of Total','Total Gross Loss (PHP)'],...statRows];
+  }
+  if (tab==='kri') {
+    const totG=lossEvents.reduce((s,e)=>s+e.gross,0), openOld=lossEvents.filter(e=>e.status==='Open'&&!e.dateResolved).length, mat=lossEvents.filter(e=>e.gross>100000).length;
+    return [['KEY RISK INDICATORS (KRIs) - OPERATIONAL RISK'],['As of Q1 2026 | Rural Bank of Calbayog City, Inc.'],['KRI','Formula / Basis','Current Value','Target / Threshold','RAG Status','Remarks'],
+      ['Total Loss Events (Quarter)','Count of events in period',lossEvents.length,'< 5 per quarter',lossEvents.length<5?'GREEN':'RED','Auto-calculated'],
+      ['Total Gross Loss Amount (PHP)','Sum of gross losses',totG,'< PHP 50,000 / quarter',totG<50000?'GREEN':'RED','Auto-calculated'],
+      ['Gross Loss as % of Gross Income','Total Gross Loss / Gross Income','N/A','< 1.0%','N/A','Requires gross income input'],
+      ['Average Resolution Time (Days)','Avg days from discovery to resolution','N/A','< 15 business days','N/A','Manual computation required'],
+      ['% Events with Root Cause Analysis','Events with RCA / Total Events','N/A','100%','N/A','Target: all events analyzed'],
+      ['Recurring Events (Same Root Cause)','Count of repeat events within 12 months',0,'0','GREEN','No recurring events detected'],
+      ['Near-Miss to Actual Loss Ratio','Near-misses / Actual loss events','N/A','> 1.0','N/A','Near-miss reporting to be enhanced'],
+      ['Open Events Aging > 30 Days','Count of open events > 30 days old',openOld,'0',openOld===0?'GREEN':'AMBER','Track monthly'],
+      ['Material Events (> PHP 100K)','Count of events above materiality',mat,'0',mat===0?'GREEN':'RED','No material events this quarter'],
+      ['IT System Uptime (%)','Uptime hours / Total hours','N/A','> 99.5%','N/A','IT monitoring required'],
+    ];
+  }
+  if (tab==='mapping') {
+    return [['OPERATIONAL RISK CATEGORY MAPPING REFERENCE'],['Basel II Event Types mapped to RBCCI Simplified Categories'],['RBCCI Category','Basel II Event Type','Description','Common Examples','Reporting Trigger'],...CAT_MAP.map(c=>[c.cat,c.basel,c.desc,c.examples,c.trigger])];
+  }
+  return [];
+}
+
+async function syncVaultToDrive() {
+  const cfg = getConfig();
+  if (!requireAuth()) return;
+  if (!cfg.folderId) { addSyncLog('✗ No Drive Folder ID configured', 'log-err'); showToast('Enter Drive Folder ID in Google Sync tab', 'error'); return; }
+  const pending = vaultDocs.filter(d => !d.driveId);
+  if (!pending.length) { addSyncLog('ℹ All vault documents already uploaded', 'log-info'); return; }
+  setSyncBtnState('vault', 'syncing');
+  addSyncLog('Uploading '+pending.length+' document(s) to Drive…', 'log-info');
+  for (const doc of pending) {
+    try {
+      let blob = doc.format==='pdf' ? doc.fileObj : await imgToPdfBlob(doc);
+      if (!blob) { addSyncLog('  Skipped (no file): '+doc.name, 'log-info'); continue; }
+      const fname = doc.name.replace(/\.[^.]+$/,'')+'_'+doc.linkRef+'.pdf';
+      const meta = {name:fname, parents:[cfg.folderId], description:'RBCCI '+doc.linkRef+' | '+doc.docType+' | '+doc.upBy};
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(meta)],{type:'application/json'}));
+      form.append('file', blob, fname);
+      const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',{method:'POST',headers:{'Authorization':'Bearer '+accessToken},body:form});
+      if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.error?.message||res.statusText); }
+      const result = await res.json();
+      doc.driveId = result.id; doc.driveLink = result.webViewLink;
+      addSyncLog('  ✓ '+result.name, 'log-ok');
+    } catch(err) { addSyncLog('  ✗ '+doc.name+': '+err.message, 'log-err'); }
+  }
+  renderVault();
+  setSyncBtnState('vault', 'done');
+  addSyncLog('Drive upload complete', 'log-ok');
+}
+
+async function imgToPdfBlob(doc) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      canvas.toBlob(blob => {
+        if (!blob) { reject(new Error('Canvas failed')); return; }
+        const reader = new FileReader();
+        reader.onload = () => resolve(new Blob([buildPDF(new Uint8Array(reader.result), img.naturalWidth, img.naturalHeight)], {type:'application/pdf'}));
+        reader.readAsArrayBuffer(blob);
+      }, 'image/jpeg', 0.88);
+    };
+    img.onerror = () => reject(new Error('Image load failed'));
+    img.src = doc.preview;
+  });
+}
+
+function buildPDF(jpeg, w, h) {
+  const enc = s => new TextEncoder().encode(s);
+  const pw = Math.round(w*72/96), ph = Math.round(h*72/96);
+  const body = enc('1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n2 0 obj\n<</Type/Pages/Kids[3 0 R]/Count 1>>\nendobj\n3 0 obj\n<</Type/Page/Parent 2 0 R/MediaBox[0 0 '+pw+' '+ph+']/Contents 4 0 R/Resources<</XObject<</Im0 5 0 R>>>>>>\nendobj\n4 0 obj\n<</Length 32>>\nstream\nq '+pw+' 0 0 '+ph+' 0 0 cm /Im0 Do Q\nendstream\nendobj\n');
+  const imgH = enc('5 0 obj\n<</Type/XObject/Subtype/Image/Width '+w+'/Height '+h+'/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length '+jpeg.length+'>>\nstream\n');
+  const imgF = enc('\nendstream\nendobj\n');
+  const xref = enc('xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n');
+  const trailer = enc('trailer\n<</Size 6/Root 1 0 R>>\nstartxref\n0\n%%EOF');
+  const total = 9+body.length+imgH.length+jpeg.length+imgF.length+xref.length+trailer.length;
+  const out = new Uint8Array(total); let pos=0;
+  for (const p of [enc('%PDF-1.4\n'),body,imgH,jpeg,imgF,xref,trailer]) { out.set(p,pos); pos+=p.length; }
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+function fmtPHP(v) { if(v===null||v===undefined||v==='') return '—'; return Number(v).toLocaleString('en-PH',{minimumFractionDigits:0}); }
+function statusBadge(st) {
+  const m = {'Open':'badge-amber','Under Investigation':'badge-blue','Resolved':'badge-green','Closed':'badge-gray'};
+  return '<span class="badge '+(m[st]||'badge-gray')+'">'+st+'</span>';
+}
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = 'toast'+(type?' '+type:'');
+  t.textContent = msg;
+  document.getElementById('toastWrap').appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('dateReport').value = new Date().toISOString().split('T')[0];
+  document.getElementById('evtRef').value = genRef();
+
+  ['grossLoss','recovery'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      const g = parseFloat(document.getElementById('grossLoss').value)||0;
+      const r = parseFloat(document.getElementById('recovery').value)||0;
+      document.getElementById('netLoss').value = Math.max(0,g-r).toFixed(2);
+    });
+  });
+
+  loadConfig();
+  renderLog();
+  renderQuarterly();
+  renderKRI();
+  renderMapping();
+  renderVault();
+
+  // Load Google Identity Services
+  const gsi = document.createElement('script');
+  gsi.src = 'https://accounts.google.com/gsi/client';
+  gsi.async = true; gsi.defer = true;
+  document.head.appendChild(gsi);
+});
+</script>
+</body>
+</html>
